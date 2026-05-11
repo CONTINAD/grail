@@ -1,0 +1,458 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─────────────────────────────────────────
+// AUTH
+// ─────────────────────────────────────────
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ─────────────────────────────────────────
+// USERS
+// ─────────────────────────────────────────
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  emailVerified DateTime?
+  name          String?
+  username      String?   @unique
+  image         String?
+  passwordHash  String?
+  bio           String?
+  location      String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Trading preferences
+  acceptsCash     Boolean @default(true)
+  cardOnlyTrades  Boolean @default(false)
+  localTradesOnly Boolean @default(false)
+
+  // Trust metrics (denormalized for fast reads)
+  completedTrades Int   @default(0)
+  cancelledTrades Int   @default(0)
+  averageRating   Float @default(0)
+  totalRatings    Int   @default(0)
+
+  accounts        Account[]
+  sessions        Session[]
+  collection      CollectionCard[]
+  wishlist        WishlistCard[]
+  sentTrades      Trade[]        @relation("TradeInitiator")
+  receivedTrades  Trade[]        @relation("TradeReceiver")
+  ratingsGiven    Rating[]       @relation("RaterUser")
+  ratingsReceived Rating[]       @relation("RatedUser")
+  notifications   Notification[]
+  messages        TradeMessage[]
+
+  posts         Post[]
+  postLikes     PostLike[]
+  postComments  PostComment[]
+  postViews     PostView[]
+  following     Follow[]      @relation("Follower")
+  followers     Follow[]      @relation("Followed")
+  ads           Ad[]
+}
+
+// ─────────────────────────────────────────
+// POKEMON TCG CARDS (cached from API)
+// ─────────────────────────────────────────
+
+model PokemonCard {
+  id          String   @id // TCG API id e.g. "sv3pt5-197"
+  name        String
+  supertype   String   // Pokémon | Trainer | Energy
+  subtypes    String[]
+  hp          String?
+  types       String[]
+  number      String
+  artist      String?
+  rarity      String?
+  imageSmall  String
+  imageLarge  String
+  setId       String
+  setName     String
+  setSeries   String
+  setTotal    Int
+
+  // Market pricing (refreshed periodically)
+  marketPrice   Float?
+  marketUpdated DateTime?
+
+  collectionCards CollectionCard[]
+  wishlistCards   WishlistCard[]
+
+  @@index([name])
+  @@index([setId])
+}
+
+// ─────────────────────────────────────────
+// COLLECTION & WISHLIST
+// ─────────────────────────────────────────
+
+enum CardCondition {
+  MINT
+  NEAR_MINT
+  LIGHTLY_PLAYED
+  MODERATELY_PLAYED
+  HEAVILY_PLAYED
+  DAMAGED
+}
+
+model CollectionCard {
+  id           String        @id @default(cuid())
+  userId       String
+  cardId       String
+  condition    CardCondition @default(NEAR_MINT)
+  quantity     Int           @default(1)
+  forTrade     Boolean       @default(true)
+  language     String        @default("EN")
+  isGraded     Boolean       @default(false)
+  gradeCompany String?       // PSA | BGS | CGC
+  gradeScore   Float?
+  notes        String?
+  addedAt      DateTime      @default(now())
+
+  user  User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  card  PokemonCard @relation(fields: [cardId], references: [id])
+  tradeItemsOffered TradeItem[] @relation("OfferedCollectionCard")
+
+  @@unique([userId, cardId, condition, language])
+  @@index([userId])
+  @@index([forTrade])
+}
+
+model WishlistCard {
+  id           String        @id @default(cuid())
+  userId       String
+  cardId       String
+  maxCondition CardCondition @default(LIGHTLY_PLAYED)
+  language     String        @default("EN")
+  gradedOnly   Boolean       @default(false)
+  minGrade     Float?
+  cashFlex     Boolean       @default(true)
+  priority     Int           @default(1) // 1=low 2=med 3=high
+  addedAt      DateTime      @default(now())
+
+  user User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  card PokemonCard @relation(fields: [cardId], references: [id])
+
+  @@unique([userId, cardId])
+  @@index([userId])
+}
+
+// ─────────────────────────────────────────
+// TRADES
+// ─────────────────────────────────────────
+
+enum TradeStatus {
+  PENDING
+  COUNTERED
+  ACCEPTED
+  SHIPPED_INITIATOR
+  SHIPPED_RECEIVER
+  IN_TRANSIT
+  COMPLETED
+  CANCELLED
+  DISPUTED
+  EXPIRED
+}
+
+model Trade {
+  id          String      @id @default(cuid())
+  initiatorId String
+  receiverId  String
+  status      TradeStatus @default(PENDING)
+
+  // Optional cash sweetener
+  cashAmount  Float?
+  cashFromWho String?  // "initiator" | "receiver"
+  stripePaymentIntentId String?
+
+  // Match score at time of proposal (0-100)
+  matchScore Int?
+
+  // Shipping
+  initiatorTracking String?
+  receiverTracking  String?
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  expiresAt   DateTime
+  completedAt DateTime?
+
+  initiator User          @relation("TradeInitiator", fields: [initiatorId], references: [id])
+  receiver  User          @relation("TradeReceiver",  fields: [receiverId],  references: [id])
+  items     TradeItem[]
+  messages  TradeMessage[]
+  ratings   Rating[]
+
+  @@index([initiatorId])
+  @@index([receiverId])
+  @@index([status])
+}
+
+enum TradeSide {
+  INITIATOR
+  RECEIVER
+}
+
+model TradeItem {
+  id               String    @id @default(cuid())
+  tradeId          String
+  side             TradeSide
+  collectionCardId String
+  quantity         Int       @default(1)
+
+  trade          Trade          @relation(fields: [tradeId], references: [id], onDelete: Cascade)
+  collectionCard CollectionCard @relation("OfferedCollectionCard", fields: [collectionCardId], references: [id])
+
+  @@index([tradeId])
+}
+
+model TradeMessage {
+  id        String   @id @default(cuid())
+  tradeId   String
+  userId    String
+  body      String   @db.Text
+  createdAt DateTime @default(now())
+
+  trade Trade @relation(fields: [tradeId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id])
+
+  @@index([tradeId])
+}
+
+// ─────────────────────────────────────────
+// RATINGS
+// ─────────────────────────────────────────
+
+model Rating {
+  id        String   @id @default(cuid())
+  tradeId   String
+  raterId   String
+  ratedId   String
+  score     Int      // 1–5
+  comment   String?
+  createdAt DateTime @default(now())
+
+  trade Trade @relation(fields: [tradeId], references: [id])
+  rater User  @relation("RaterUser", fields: [raterId], references: [id])
+  rated User  @relation("RatedUser", fields: [ratedId], references: [id])
+
+  @@unique([tradeId, raterId])
+}
+
+// ─────────────────────────────────────────
+// NOTIFICATIONS
+// ─────────────────────────────────────────
+
+enum NotificationType {
+  NEW_MATCH
+  TRADE_OFFER
+  TRADE_COUNTERED
+  TRADE_ACCEPTED
+  TRADE_CANCELLED
+  ITEM_SHIPPED
+  TRADE_COMPLETED
+  NEW_RATING
+  PRICE_ALERT
+  NEW_LIKE
+  NEW_COMMENT
+  NEW_FOLLOW
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  type      NotificationType
+  title     String
+  body      String
+  read      Boolean          @default(false)
+  data      Json?
+  createdAt DateTime         @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, read])
+}
+
+// ─────────────────────────────────────────
+// FEED (TikTok-style vertical content)
+// ─────────────────────────────────────────
+
+enum PostKind {
+  SHOWCASE      // owner shows off a card / pull / mail day
+  WANT          // "I want this / looking for trades"
+  PACK_OPEN     // pack opening
+  TRADE_STORY   // recap of a completed trade
+  AD            // sponsored
+}
+
+model Post {
+  id          String    @id @default(cuid())
+  userId      String
+  kind        PostKind  @default(SHOWCASE)
+  caption     String?   @db.Text
+  mediaUrl    String
+  mediaType   String    @default("video")   // "video" | "image"
+  thumbUrl    String?
+  durationSec Float?
+  featuredCardId String?
+  featuredCardName String?
+  featuredCardImage String?
+  featuredGradeCompany String?   // "PSA" | "BGS" | "CGC" | "SGC"
+  featuredGradeScore   Float?    // 1.0 - 10.0
+  askingPrice Float?
+  openToTrade Boolean   @default(true)
+  tags        String[]
+
+  // Denormalized counters for feed perf
+  viewCount    Int @default(0)
+  likeCount    Int @default(0)
+  commentCount Int @default(0)
+  shareCount   Int @default(0)
+
+  createdAt DateTime @default(now())
+
+  user     User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  likes    PostLike[]
+  comments PostComment[]
+  views    PostView[]
+
+  @@index([userId])
+  @@index([createdAt])
+  @@index([kind])
+  @@index([featuredCardId])
+}
+
+model PostLike {
+  id        String   @id @default(cuid())
+  postId    String
+  userId    String
+  createdAt DateTime @default(now())
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId])
+  @@index([userId])
+}
+
+model PostComment {
+  id        String   @id @default(cuid())
+  postId    String
+  userId    String
+  body      String   @db.Text
+  createdAt DateTime @default(now())
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([postId])
+}
+
+model PostView {
+  id         String   @id @default(cuid())
+  postId     String
+  userId     String
+  watchedMs  Int      @default(0)
+  completed  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([postId])
+  @@index([userId, createdAt])
+}
+
+model Follow {
+  id         String   @id @default(cuid())
+  followerId String
+  followedId String
+  createdAt  DateTime @default(now())
+
+  follower User @relation("Follower", fields: [followerId], references: [id], onDelete: Cascade)
+  followed User @relation("Followed", fields: [followedId], references: [id], onDelete: Cascade)
+
+  @@unique([followerId, followedId])
+  @@index([followedId])
+}
+
+enum AdStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+  ENDED
+}
+
+model Ad {
+  id            String   @id @default(cuid())
+  advertiserId  String
+  title         String
+  caption       String?  @db.Text
+  mediaUrl      String
+  mediaType     String   @default("video")
+  thumbUrl      String?
+  ctaLabel      String   @default("Learn More")
+  ctaUrl        String
+  // targeting
+  targetTags    String[]
+  // budget
+  dailyBudgetUsd Float   @default(10)
+  totalBudgetUsd Float?
+  spentUsd       Float   @default(0)
+  cpmUsd         Float   @default(2.5)
+  // stats
+  impressions    Int     @default(0)
+  clicks         Int     @default(0)
+  status         AdStatus @default(ACTIVE)
+  startsAt       DateTime @default(now())
+  endsAt         DateTime?
+  createdAt      DateTime @default(now())
+
+  advertiser User @relation(fields: [advertiserId], references: [id], onDelete: Cascade)
+
+  @@index([status])
+}

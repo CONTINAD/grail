@@ -1,0 +1,359 @@
+@import "tailwindcss";
+
+/* ───────────────────────────────────────────────────────────────
+   MIDNIGHT MARKET design system
+   Luxury auction house × modern streetwear.
+   ─────────────────────────────────────────────────────────────── */
+
+:root {
+  --ink-950: #050506;
+  --ink-900: #0b0b0d;
+  --ink-850: #101014;
+  --ink-800: #16161b;
+  --ink-700: #1f1f26;
+  --ink-600: #2a2a34;
+  --ink-500: #3d3d4a;
+  --ink-400: #6a6a78;
+  --ink-300: #9898a5;
+  --ink-200: #c8c8d0;
+  --ink-100: #e8e8ec;
+
+  /* Signature amber — warmer and more saturated than flat yellow */
+  --amber-100: #fff4d6;
+  --amber-200: #fde88b;
+  --amber-400: #f7c948;
+  --amber-500: #e8a317;
+  --amber-600: #b07c0b;
+
+  /* Deep violet accent — signals rarity/grade chips */
+  --violet-400: #b79dff;
+  --violet-500: #8b6dff;
+
+  /* Market green for prices */
+  --jade-400: #5ae5a0;
+  --jade-500: #17c77f;
+
+  /* Editorial red */
+  --rose-500: #ff4d6d;
+
+  --bg: var(--ink-950);
+  --panel: var(--ink-900);
+  --panel-2: var(--ink-850);
+  --line: #222229;
+}
+
+@theme inline {
+  --color-background: var(--bg);
+  --color-foreground: var(--ink-100);
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-display), Georgia, serif;
+  --font-italic: var(--font-italic), Georgia, serif;
+  --font-mono: var(--font-mono), ui-monospace, monospace;
+}
+
+html,
+body {
+  background: var(--bg);
+  color: var(--ink-100);
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Signature background: deep near-black with subtle grain */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(1200px 600px at 10% -10%, rgba(247, 201, 72, 0.07), transparent 60%),
+    radial-gradient(800px 500px at 90% 10%, rgba(139, 109, 255, 0.05), transparent 60%),
+    radial-gradient(1000px 800px at 50% 120%, rgba(23, 199, 127, 0.04), transparent 60%);
+}
+
+/* Fine grain overlay — adds organic texture, prevents banding */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.035;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml;utf8,<svg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+}
+
+/* Editorial display type */
+.font-display {
+  font-family: var(--font-display, "Libre Caslon Display"), Georgia, serif;
+  font-feature-settings: "ss01", "ss02", "liga";
+  letter-spacing: -0.02em;
+}
+
+/* Magazine-italic accent — for hero moments only */
+.font-italic-display {
+  font-family: var(--font-italic), Georgia, serif;
+  font-style: italic;
+  letter-spacing: -0.01em;
+}
+
+/* Monospaced numerics for tickers and prices */
+.font-mono {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-feature-settings: "tnum", "zero", "ss01";
+}
+
+/* Kicker — small caps editorial label */
+.kicker {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--amber-400);
+}
+.kicker-mute {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--ink-400);
+}
+
+/* Premium card surfaces */
+.panel {
+  background: linear-gradient(180deg, var(--panel) 0%, var(--panel-2) 100%);
+  border: 1px solid var(--line);
+  border-radius: 20px;
+}
+.panel-inset {
+  background: var(--ink-850);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+}
+
+/* Amber CTA — flagship button */
+.btn-amber {
+  background: linear-gradient(180deg, var(--amber-400), var(--amber-500));
+  color: #1a1300;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  box-shadow:
+    0 1px 0 0 rgba(255, 255, 255, 0.2) inset,
+    0 -1px 0 0 rgba(0, 0, 0, 0.2) inset,
+    0 8px 24px -8px rgba(247, 201, 72, 0.45);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.btn-amber:hover {
+  transform: translateY(-1px);
+  box-shadow:
+    0 1px 0 0 rgba(255, 255, 255, 0.25) inset,
+    0 -1px 0 0 rgba(0, 0, 0, 0.2) inset,
+    0 12px 32px -10px rgba(247, 201, 72, 0.6);
+}
+.btn-amber:active {
+  transform: translateY(0) scale(0.98);
+}
+
+/* Ambient pulse on primary CTAs — subtle, once every 4s */
+@keyframes amberPulse {
+  0%, 100% { box-shadow:
+    0 1px 0 0 rgba(255, 255, 255, 0.2) inset,
+    0 -1px 0 0 rgba(0, 0, 0, 0.2) inset,
+    0 8px 24px -8px rgba(247, 201, 72, 0.45); }
+  50% { box-shadow:
+    0 1px 0 0 rgba(255, 255, 255, 0.25) inset,
+    0 -1px 0 0 rgba(0, 0, 0, 0.2) inset,
+    0 10px 30px -6px rgba(247, 201, 72, 0.7); }
+}
+.btn-amber:not(:hover):not(:active):not(:disabled) {
+  animation: amberPulse 4.5s ease-in-out infinite;
+}
+
+/* Ghost button */
+.btn-ghost {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--ink-700);
+  color: var(--ink-100);
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.btn-ghost:hover {
+  border-color: var(--ink-500);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+/* Shimmer for skeletons */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.shimmer {
+  background: linear-gradient(90deg, var(--ink-800) 25%, var(--ink-700) 50%, var(--ink-800) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+
+/* Glow helper */
+.glow-amber {
+  box-shadow: 0 0 60px -15px rgba(247, 201, 72, 0.55);
+}
+
+/* Custom scrollbar (subtle) */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--ink-700); border-radius: 10px; border: 2px solid var(--bg); }
+::-webkit-scrollbar-thumb:hover { background: var(--ink-600); }
+
+/* Hide scrollbar utility */
+.scrollbar-none { scrollbar-width: none; -ms-overflow-style: none; }
+.scrollbar-none::-webkit-scrollbar { display: none; }
+
+/* Fade in on mount */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.fade-up { animation: fadeUp 0.4s ease-out both; }
+.fade-up-delayed { animation: fadeUp 0.5s ease-out 0.15s both; }
+
+/* Marquee for section dividers / tags */
+@keyframes marquee {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+.marquee-track { animation: marquee 40s linear infinite; }
+
+/* Noise-scribed divider */
+.rule {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--line) 20%, var(--line) 80%, transparent);
+}
+
+/* Animation utilities */
+.anim-pulse-slow { animation: pulse 3s ease-in-out infinite; }
+
+/* Focus rings: amber */
+*:focus-visible {
+  outline: 2px solid var(--amber-400);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* ───────────────────────────────────────────────────────────────
+   Landing-page atmospherics
+   ─────────────────────────────────────────────────────────────── */
+
+/* Scroll-triggered reveal — fades up as it enters view */
+@keyframes reveal {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.reveal {
+  animation: reveal 1s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-timeline: view();
+  animation-range: entry 0% cover 30%;
+}
+@supports not (animation-timeline: view()) {
+  .reveal { animation: reveal 0.9s cubic-bezier(0.16, 1, 0.3, 1) both; }
+}
+
+/* Endless horizontal marquee */
+@keyframes ticker {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+.ticker-track { animation: ticker 60s linear infinite; }
+.ticker-track-fast { animation: ticker 28s linear infinite; }
+
+@keyframes ledger-scroll {
+  0%   { transform: translateY(0); }
+  100% { transform: translateY(-50%); }
+}
+.ledger-track { animation: ledger-scroll 30s linear infinite; }
+
+/* Slow drift for hero accents */
+@keyframes drift {
+  0%, 100% { transform: translate(0, 0); }
+  50%      { transform: translate(8px, -12px); }
+}
+.drift { animation: drift 9s ease-in-out infinite; }
+
+/* Subtle floating */
+@keyframes float-y {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-10px); }
+}
+.float-y { animation: float-y 6s ease-in-out infinite; }
+
+/* Gradient text helper — amber edition */
+.gradient-amber {
+  background: linear-gradient(135deg, #FFE8A0 0%, #F7C948 45%, #CB8A08 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+.gradient-ink {
+  background: linear-gradient(180deg, #fafafa 0%, #9898a5 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Dot-grid background — quiet texture for editorial sections */
+.dotgrid {
+  background-image:
+    radial-gradient(circle at 1px 1px, rgba(255,255,255,0.045) 1px, transparent 0);
+  background-size: 24px 24px;
+}
+
+/* Cross-hatch — for the "trading floor" texture */
+.crosshatch {
+  background-image:
+    linear-gradient(45deg, rgba(247,201,72,0.04) 25%, transparent 25%),
+    linear-gradient(-45deg, rgba(247,201,72,0.04) 25%, transparent 25%);
+  background-size: 18px 18px;
+}
+
+/* Editorial pull-quote rule */
+.pull-rule {
+  background: linear-gradient(90deg,
+    transparent,
+    var(--amber-400) 30%,
+    var(--amber-400) 70%,
+    transparent);
+}
+
+/* Halftone dot scatter — collector-magazine cover vibe */
+.halftone {
+  background-image:
+    radial-gradient(circle at 8px 8px, rgba(247,201,72,0.18) 2px, transparent 2.5px),
+    radial-gradient(circle at 24px 24px, rgba(247,201,72,0.10) 1.5px, transparent 2px);
+  background-size: 32px 32px, 48px 48px;
+}
+
+/* Card hover lift (tilt + glow) */
+.card-lift {
+  transition: transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1),
+              box-shadow 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.card-lift:hover {
+  transform: translateY(-6px) rotate(-0.3deg);
+  box-shadow: 0 30px 60px -20px rgba(0,0,0,0.6),
+              0 0 0 1px rgba(247,201,72,0.18),
+              0 0 80px -20px rgba(247,201,72,0.25);
+}
+
+/* Big editorial ampersand / number watermarks */
+.watermark {
+  font-family: var(--font-italic), Georgia, serif;
+  font-style: italic;
+  color: transparent;
+  -webkit-text-stroke: 1px rgba(247,201,72,0.18);
+  user-select: none;
+  pointer-events: none;
+}
+
+/* Smooth scrolling for anchor jumps */
+html { scroll-behavior: smooth; }

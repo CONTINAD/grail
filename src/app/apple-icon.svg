@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180" fill="none">
+  <defs>
+    <radialGradient id="tile" cx="30%" cy="22%" r="85%">
+      <stop offset="0" stop-color="#FFEFB0"/>
+      <stop offset="0.38" stop-color="#F7C948"/>
+      <stop offset="1" stop-color="#A86B06"/>
+    </radialGradient>
+    <linearGradient id="ink" x1="90" y1="24" x2="90" y2="152">
+      <stop offset="0" stop-color="#2a1a00"/>
+      <stop offset="1" stop-color="#0a0700"/>
+    </linearGradient>
+    <linearGradient id="gloss" x1="0" y1="0" x2="180" y2="180">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.35"/>
+      <stop offset="0.5" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <rect width="180" height="180" rx="40" fill="url(#tile)"/>
+  <rect width="180" height="180" rx="40" fill="url(#gloss)"/>
+  <g transform="translate(18 18) scale(3.6)">
+    <path d="M12 6.5 L28 6.5 Q28 7 27.8 7.6 Q27.2 15.5 22 19 L22 27 L27 27 Q27.5 27 27.5 28 L27.5 30.5 Q27.5 31.5 26.5 31.5 L13.5 31.5 Q12.5 31.5 12.5 30.5 L12.5 28 Q12.5 27 13 27 L18 27 L18 19 Q12.8 15.5 12.2 7.6 Q12 7 12 6.5 Z" fill="url(#ink)"/>
+    <path d="M14.5 9.5 Q15 14 17.5 16.5 L17.5 19 Q14 17 13 12 Z" fill="#fff8d8" opacity="0.38"/>
+    <circle cx="32.5" cy="32.5" r="2" fill="#1a0f00"/>
+  </g>
+</svg>
