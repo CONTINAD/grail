@@ -268,24 +268,33 @@ function Cover() {
                   value={3402100}
                   format={(n) => "$" + (Math.round(n / 1000)).toLocaleString() + "k"}
                   hint="across 1,488 closed trades"
+                  trend={[2.61, 2.74, 2.68, 2.92, 3.03, 2.97, 3.18, 3.27, 3.21, 3.34, 3.4]}
+                  delta={12.4}
                 />
                 <CoverStat
                   label="Active members"
                   value={28140}
                   format={(n) => n.toLocaleString()}
                   hint="14 new in the last hour"
+                  trend={[24.1, 24.6, 25.0, 25.4, 26.1, 26.5, 26.9, 27.2, 27.6, 27.9, 28.1]}
+                  delta={4.8}
                 />
                 <CoverStat
                   label="Avg close time"
                   value={37}
                   format={(n) => n + " min"}
                   hint="from match to handshake"
+                  trend={[52, 49, 47, 46, 44, 43, 42, 40, 39, 38, 37]}
+                  delta={-8.2}
+                  invert
                 />
                 <CoverStat
                   label="Flat fee · per side"
                   value={6}
                   format={(n) => "$1–" + n}
                   hint="no percentage skim"
+                  trend={[6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6]}
+                  steady
                 />
               </div>
             </Reveal>
@@ -333,21 +342,70 @@ function CoverStat({
   value,
   format,
   hint,
+  trend,
+  delta,
+  invert,
+  steady,
 }: {
   label: string;
   value: number;
   format: (n: number) => string;
   hint: string;
+  trend: number[];
+  delta?: number;
+  invert?: boolean;
+  steady?: boolean;
 }) {
+  // `invert`: a falling number is the good thing (e.g. close time).
+  const isPositive = steady
+    ? null
+    : invert
+      ? (delta ?? 0) < 0
+      : (delta ?? 0) > 0;
+  const trendColor = steady
+    ? "#a1a1aa"
+    : isPositive
+      ? "#5ae5a0"
+      : "#f87171";
+  const deltaColor = steady
+    ? "text-zinc-500"
+    : isPositive
+      ? "text-[color:var(--jade,#5ae5a0)]"
+      : "text-rose-300";
+
   return (
-    <div>
-      <p className="font-mono text-[10px] tracking-[0.22em] uppercase text-zinc-500">
-        {label}
-      </p>
-      <p className="font-display font-bold text-[34px] md:text-[40px] leading-none tracking-[-0.025em] mt-2 text-white">
+    <div className="group relative">
+      <div className="flex items-center justify-between gap-3">
+        <p className="font-mono text-[10px] tracking-[0.22em] uppercase text-zinc-500">
+          {label}
+        </p>
+        {!steady && typeof delta === "number" && (
+          <span
+            className={`font-mono text-[10px] tabular-nums tracking-wider ${deltaColor}`}
+          >
+            <span aria-hidden>{isPositive ? "▲" : "▼"}</span>{" "}
+            {Math.abs(delta).toFixed(1)}%
+          </span>
+        )}
+        {steady && (
+          <span className="font-mono text-[10px] tracking-wider text-zinc-500">
+            FLAT
+          </span>
+        )}
+      </div>
+      <p className="font-display font-bold text-[34px] md:text-[40px] leading-none tracking-[-0.025em] mt-2 text-white tabular-nums">
         <Counter value={value} duration={1.6} format={format} />
       </p>
-      <p className="text-[11px] text-zinc-500 mt-2 leading-snug">{hint}</p>
+      <div className="mt-3 -mx-1 opacity-80 group-hover:opacity-100 transition-opacity">
+        <Sparkline
+          values={trend}
+          stroke={trendColor}
+          width={200}
+          height={28}
+          className="w-full h-7"
+        />
+      </div>
+      <p className="text-[11px] text-zinc-500 mt-1 leading-snug">{hint}</p>
     </div>
   );
 }

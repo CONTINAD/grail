@@ -130,10 +130,47 @@ export default async function ProfilePage({
 
         {/* Stat strip */}
         <div className="relative grid grid-cols-2 md:grid-cols-5 border-t border-[color:var(--line)]">
-          <Stat icon={Package} value={user._count.posts} label="posts" />
-          <Stat icon={Users} value={user._count.followers} label="followers" />
-          <Stat icon={Users} value={user._count.following} label="following" />
-          <Stat icon={ArrowLeftRight} value={user.completedTrades} label="trades" />
+          <Stat
+            icon={Package}
+            value={user._count.posts}
+            label="posts"
+            visual={<DotRow count={user._count.posts} />}
+          />
+          <Stat
+            icon={Users}
+            value={user._count.followers}
+            label="followers"
+            visual={
+              <RatioBar
+                a={user._count.followers}
+                b={user._count.following}
+                hint={
+                  user._count.followers >= user._count.following
+                    ? "more followers"
+                    : "following more"
+                }
+              />
+            }
+          />
+          <Stat
+            icon={Users}
+            value={user._count.following}
+            label="following"
+            visual={
+              <RatioBar
+                a={user._count.following}
+                b={user._count.followers}
+                hint={null}
+                muted
+              />
+            }
+          />
+          <Stat
+            icon={ArrowLeftRight}
+            value={user.completedTrades}
+            label="trades"
+            visual={<CompletionMeter count={user.completedTrades} />}
+          />
           <Stat
             icon={Star}
             value={
@@ -143,6 +180,11 @@ export default async function ProfilePage({
             }
             sub={user.totalRatings ? `${user.totalRatings} ratings` : undefined}
             label="rating"
+            visual={
+              user.totalRatings ? (
+                <StarBar value={user.averageRating} />
+              ) : null
+            }
           />
         </div>
       </header>
@@ -180,20 +222,138 @@ function Stat({
   value,
   label,
   sub,
+  visual,
 }: {
   icon: React.ComponentType<{ className?: string }>;
   value: number | string;
   label: string;
   sub?: string;
+  visual?: React.ReactNode;
 }) {
   return (
-    <div className="px-5 md:px-6 py-5 border-r border-[color:var(--line)] last:border-r-0 md:border-b-0 border-b">
+    <div className="group relative px-5 md:px-6 py-5 border-r border-[color:var(--line)] last:border-r-0 md:border-b-0 border-b overflow-hidden">
+      <span
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[color:var(--amber-400)]/0 to-transparent group-hover:via-[color:var(--amber-400)]/50 transition-colors duration-500"
+      />
       <div className="flex items-center gap-2 text-zinc-500">
-        <Icon className="h-3.5 w-3.5" />
+        <Icon className="h-3.5 w-3.5 text-[color:var(--amber-400)]/70" />
         <span className="kicker-mute">{label}</span>
       </div>
-      <p className="font-display text-2xl md:text-3xl font-bold mt-1 tabular-nums">{value}</p>
-      {sub && <p className="text-xs text-zinc-500 mt-0.5">{sub}</p>}
+      <div className="flex items-baseline gap-2 mt-1">
+        <p className="font-display text-2xl md:text-3xl font-bold tabular-nums leading-none">
+          {value}
+        </p>
+        {sub && (
+          <p className="text-[10px] text-zinc-500 leading-tight">{sub}</p>
+        )}
+      </div>
+      {visual && <div className="mt-3">{visual}</div>}
+    </div>
+  );
+}
+
+function DotRow({ count, max = 20 }: { count: number; max?: number }) {
+  const filled = Math.min(count, max);
+  const overflow = count > max;
+  return (
+    <div className="flex items-center gap-1">
+      {Array.from({ length: max }, (_, i) => (
+        <span
+          key={i}
+          aria-hidden
+          className={`h-1.5 w-1.5 rounded-full ${
+            i < filled
+              ? "bg-[color:var(--amber-400)]"
+              : "bg-[color:var(--line)]"
+          }`}
+        />
+      ))}
+      {overflow && (
+        <span className="ml-1 font-mono text-[9px] tracking-wider text-zinc-500">
+          +{count - max}
+        </span>
+      )}
+    </div>
+  );
+}
+
+function RatioBar({
+  a,
+  b,
+  hint,
+  muted,
+}: {
+  a: number;
+  b: number;
+  hint: string | null;
+  muted?: boolean;
+}) {
+  const total = a + b || 1;
+  const pct = Math.round((a / total) * 100);
+  return (
+    <div className="space-y-1">
+      <div className="h-1 rounded-full bg-[color:var(--line)] overflow-hidden">
+        <div
+          className={`h-full ${
+            muted
+              ? "bg-zinc-500"
+              : "bg-gradient-to-r from-[color:var(--amber-500)] to-[color:var(--amber-400)]"
+          }`}
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+      {hint && (
+        <p className="font-mono text-[9px] tracking-wider uppercase text-zinc-500">
+          {hint}
+        </p>
+      )}
+    </div>
+  );
+}
+
+function CompletionMeter({ count }: { count: number }) {
+  // Scale: 0 → faint, 10 → mid, 50+ → full. Decorative, no fake data.
+  const pct = Math.min(100, Math.round((count / 50) * 100));
+  return (
+    <div className="space-y-1">
+      <div className="h-1 rounded-full bg-[color:var(--line)] overflow-hidden">
+        <div
+          className="h-full bg-gradient-to-r from-[color:var(--amber-500)] to-[color:var(--amber-400)]"
+          style={{ width: `${Math.max(pct, count > 0 ? 6 : 0)}%` }}
+        />
+      </div>
+      <p className="font-mono text-[9px] tracking-wider uppercase text-zinc-500">
+        {count === 0
+          ? "no trades yet"
+          : count < 5
+            ? "getting started"
+            : count < 25
+              ? "active trader"
+              : "veteran"}
+      </p>
+    </div>
+  );
+}
+
+function StarBar({ value }: { value: number }) {
+  return (
+    <div className="flex items-center gap-0.5">
+      {Array.from({ length: 5 }, (_, i) => {
+        const fill = Math.max(0, Math.min(1, value - i));
+        return (
+          <span key={i} className="relative inline-block h-3 w-3">
+            <Star className="absolute inset-0 h-3 w-3 text-[color:var(--line)]" />
+            <span
+              aria-hidden
+              className="absolute inset-0 overflow-hidden"
+              style={{ width: `${fill * 100}%` }}
+            >
+              <Star className="h-3 w-3 text-[color:var(--amber-400)] fill-[color:var(--amber-400)]" />
+            </span>
+          </span>
+        );
+      })}
     </div>
   );
 }
